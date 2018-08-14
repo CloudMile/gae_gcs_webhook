@@ -55,6 +55,8 @@ func homeHandle(w http.ResponseWriter, r *http.Request) {
 		"Md5Hash":    {gcsObj.Md5Hash},
 	}
 	log.Infof(ctx, "urlValues: %#v", urlValues)
+	log.Infof(ctx, "channel id: %v", r.Header.Get(`X-Goog-Channel-Id`))
+	log.Infof(ctx, "resource id: %v", r.Header.Get(`X-Goog-Resource-Id`))
 
 	t := taskqueue.NewPOSTTask("/queue", urlValues)
 	if _, err := taskqueue.Add(ctx, t, "invalidate-cache"); err != nil {
