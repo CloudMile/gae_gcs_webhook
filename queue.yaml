@@ -1,0 +1,4 @@
+queue:
+- name: invalidate-cache
+  rate: 12/m
+  target: default
