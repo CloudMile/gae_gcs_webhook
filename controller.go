@@ -9,13 +9,9 @@ import (
 	"net/url"
 	"os"
 
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
-	compute "google.golang.org/api/compute/v1"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/log"
 	"google.golang.org/appengine/taskqueue"
-	"google.golang.org/appengine/urlfetch"
 )
 
 func errorHandler(w http.ResponseWriter, r *http.Request, status int) {
@@ -71,13 +67,17 @@ func queueHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := appengine.NewContext(r)
-	computeService, isError := getComputeService(w, r)
-	if isError {
+	cs := ComputeService{Ctx: ctx}
+	cs.Get()
+
+	if cs.isError {
+		errorHandler(w, r, http.StatusMethodNotAllowed)
 		return
 	}
+
 	gcsObj := GCSObj{
 		Ctx:            ctx,
-		ComputeService: computeService,
+		ComputeService: cs.ComputeService,
 		Bucket:         r.FormValue(`Bucket`),
 		ObjectName:     r.FormValue(`ObjectName`),
 		Md5Hash:        r.FormValue(`Md5Hash`),
@@ -107,29 +107,6 @@ func checkRequest(w http.ResponseWriter, r *http.Request) (body []byte, isError 
 		isError = true
 		return
 	}
-	isError = false
-	return
-}
-
-func getComputeService(w http.ResponseWriter, r *http.Request) (computeService *compute.Service, isError bool) {
-	ctx := appengine.NewContext(r)
-	client := &http.Client{
-		Transport: &oauth2.Transport{
-			Source: google.AppEngineTokenSource(ctx, compute.CloudPlatformScope),
-			Base: &urlfetch.Transport{
-				Context: ctx,
-			},
-		},
-	}
-	computeService, err := compute.New(client)
-
-	if err != nil {
-		log.Errorf(ctx, "compute error: %s", err)
-		errorHandler(w, r, http.StatusInternalServerError)
-		isError = true
-		return
-	}
-
 	isError = false
 	return
 }
