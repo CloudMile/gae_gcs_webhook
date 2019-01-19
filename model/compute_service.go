@@ -1,4 +1,4 @@
-package app
+package model
 
 import (
 	"context"
@@ -15,15 +15,22 @@ import (
 type ComputeService struct {
 	Ctx            context.Context
 	ComputeService *compute.Service
-	isError        bool
+	Error          error
 }
 
 // Get for setup GCP auth client service
 func (cs *ComputeService) Get() {
-	cs.isError = false
+	tokenSource, err := google.DefaultTokenSource(cs.Ctx, compute.ComputeScope)
+
+	if err != nil {
+		log.Errorf(cs.Ctx, "token error: %s", err)
+		cs.Error = err
+		return
+	}
+
 	client := &http.Client{
 		Transport: &oauth2.Transport{
-			Source: google.AppEngineTokenSource(cs.Ctx, compute.CloudPlatformScope),
+			Source: tokenSource,
 			Base: &urlfetch.Transport{
 				Context: cs.Ctx,
 			},
@@ -32,8 +39,8 @@ func (cs *ComputeService) Get() {
 	computeService, err := compute.New(client)
 
 	if err != nil {
-		log.Errorf(cs.Ctx, "compute error: %s", err)
-		cs.isError = true
+		log.Errorf(cs.Ctx, "compute service error: %s", err)
+		cs.Error = err
 		return
 	}
 	cs.ComputeService = computeService

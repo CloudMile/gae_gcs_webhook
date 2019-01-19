@@ -1,20 +1,18 @@
-runtime: go
-api_version: go1
+runtime: go111
 
 env: standard
 service: default
-threadsafe: false
 instance_class: F1
 handlers:
   - url: /queue/.*
-    script: _go_app
+    script: auto
     login: admin
 
   - url: '/.*'
-    script: _go_app
+    script: auto
 
 env_variables:
   PROJECT_ID: <YOUR_CDN_PROJECT_ID>
   URL_MAP: <YOUR_CDN_URL_MAP>
-  # DOMAIN_VERIFICATION: googlede741431784b6b76.html
+  # example DOMAIN_VERIFICATION: googlede741431784b6b76.html
   DOMAIN_VERIFICATION: <GOOGLE_VERIFICATION>

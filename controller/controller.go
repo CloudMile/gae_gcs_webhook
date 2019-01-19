@@ -1,4 +1,4 @@
-package app
+package controller
 
 import (
 	"encoding/json"
@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 
+	"github.com/CloudMile/gae_gcs_webhook/model"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/log"
 	"google.golang.org/appengine/taskqueue"
@@ -28,21 +29,23 @@ func errorHandler(w http.ResponseWriter, r *http.Request, status int) {
 	}
 }
 
-func gooHandle(w http.ResponseWriter, r *http.Request) {
-	gcsObj := GCSObj{}
+// GooHandle is for domain verification
+func GooHandle(w http.ResponseWriter, r *http.Request) {
+	gcsObj := model.GCSObj{}
 	domainVerification := os.Getenv("DOMAIN_VERIFICATION")
 	t, _ := template.ParseFiles(domainVerification)
 	t.Execute(w, gcsObj)
 }
 
-func homeHandle(w http.ResponseWriter, r *http.Request) {
+// HomeHandle is call a queue job for invalidate-cache
+func HomeHandle(w http.ResponseWriter, r *http.Request) {
 	body, isError := checkRequest(w, r)
 	if isError {
 		return
 	}
 
 	ctx := appengine.NewContext(r)
-	var gcsObj GCSObj
+	var gcsObj model.GCSObj
 	json.Unmarshal(body, &gcsObj)
 
 	urlValues := url.Values{
@@ -61,21 +64,22 @@ func homeHandle(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func queueHandle(w http.ResponseWriter, r *http.Request) {
+// QueueHandle is doing invalidate-cache
+func QueueHandle(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/queue" {
 		errorHandler(w, r, http.StatusNotFound)
 		return
 	}
 	ctx := appengine.NewContext(r)
-	cs := ComputeService{Ctx: ctx}
+	cs := model.ComputeService{Ctx: ctx}
 	cs.Get()
 
-	if cs.isError {
+	if cs.Error != nil {
 		errorHandler(w, r, http.StatusMethodNotAllowed)
 		return
 	}
 
-	gcsObj := GCSObj{
+	gcsObj := model.GCSObj{
 		Ctx:            ctx,
 		ComputeService: cs.ComputeService,
 		Bucket:         r.FormValue(`Bucket`),
